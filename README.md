@@ -1,4 +1,5 @@
 **Make sure to look at the Write Up for the full version with screenshots.**
+
 Project Overview
 This project investigates social media interactions among members of the U.S. Congress can be used to identify influential political figures. Using a directed, weighted graph constructed from a Twitter interaction dataset, the project analyzes each member’s degree centrality (their number of outgoing connections) to answer this question: “Do the most socially active or mentioned members of Congress on Twitter correspond to those with real-world political influence?”
 I used degree and centrality metric to visualize, quantify, and rank influence in a network context, exploring how digital presence may reflect or diverge from actual power.
