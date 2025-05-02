@@ -5,21 +5,33 @@ use polars::prelude::*;
 use congress_project::graph::{Graph, infer_graph_size, plot_histogram, visualize_graph};
 use congress_project::graph::{plot_centrality_histogram};
 use plotters::prelude::*;
+//main function that runs the congressional graph analysis pipeline
+// #what it does
+// - loads a graph from an edge list file
+// - builds a polars dataframe of the edges
+// - prints the adjacencyu matrix
+// - calculates and displays out-degree and degree centrality
+// - plots histograms and graph visualization
+// - saves centrality scores to a csv file
+// #returns: 'Ok(())' if successful, or a boxed error if something fails
+
 
 fn main() -> Result<(), Box<dyn Error>> {
     let filename = "data/edgelist.txt";
-
+    // estimate number of nodes in the graph by scanning max node index
     let n = infer_graph_size(filename);
     println!("Inferred graph size: {}", n);
 
+    //load graph structure from file (directed, weighted edges)
     let graph = Graph::from_file(filename, n)?;
     println!("Graph loaded with {} nodes.", graph.n);
 
-    // this is building the data frame
+    // this is creating edge list for DataFrame
     let mut from_nodes = Vec::new();
     let mut to_nodes = Vec::new();
     let mut weights = Vec::new();
 
+    //flattens the graph's adjacency list into from/to/weight vectors
     for (node_idx, edges) in graph.outgoing.iter().enumerate() {
         for &(target, weight) in edges {
             from_nodes.push(node_idx as u32);
@@ -28,13 +40,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
+    // builds a dataframe, like in pandas
     let df = df![
         "from" => from_nodes,
         "to" => to_nodes,
         "weight" => weights,
     ]?;
 
-    // first ten rows! (like python)
+    // first ten edges!
     println!("\nFirst 10 edges (like pandas head()):");
     println!("{:?}", df.head(Some(10)));
 
@@ -50,7 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     println!();
 
-    // rows
+    // prints each row of the matrix with weights (or dot if 0)
     for (row_idx, row) in matrix.iter().enumerate() {
         print!("{}\t", row_idx);
         for &weight in row {
@@ -63,13 +76,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!();
     }
 
-    // count connectivity (out-degree)
+    // compute node degrees
     let mut degrees = Vec::new();
     for (node_idx, edges) in graph.outgoing.iter().enumerate() {
         degrees.push((node_idx, edges.len()));
     }
 
-    // this is sort by degree descending
+    // this is sort by number of outgoing connections - descending
     degrees.sort_by(|a, b| b.1.cmp(&a.1));
 
     println!("\nTop 10 Most Connected Nodes:");
@@ -77,6 +90,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("Node {}: {} outgoing connections", node_idx, degree);
     }
 
+    //print node with highest out-degree
     let most_connected = degrees.first().unwrap();
     println!("\nNode with most outgoing connections: Node {} with {} edges.", most_connected.0, most_connected.1);
 
@@ -115,7 +129,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 }
 
-// helper function to save centrality into CSV
+// writes the centrality scores to a csv file named "centrality.csv"
+// #inputs: 'centrality_scores': vector of '(node_index, centrality_value)' pairs
+// #output: file output written to disk. each row contains: 'node_id, centrality
 fn save_centrality_to_csv(centrality_scores: &Vec<(usize, f64)>) -> Result<(), Box<dyn Error>> {
     let mut file = File::create("centrality.csv")?;
     writeln!(file, "node_id,centrality")?;
