@@ -136,8 +136,8 @@ All program outputs (screenshots or pasted)
 
 Interpretation in project context
 The analysis identifies Node 367 as the most connected member in the network, with 210 outgoing connections and a centrality score of 0.4430. This suggests that Node 367 frequently interacts with or mentions a large number of other congressional members on Twitter. Similarly, the other top-ranking nodes by degree centrality also have high out-degree counts, indicating a potentially prominent or active role in online political discourse.
-The nodes are not labeled with names, but the results demonstrate that some members exhibit significantly higher connectivity than others, suggesting possible influence. This supports the broader goal of using social media interaction graphs to explore patterns of prominence or engagement among Congress members.
-Although this analysis doesn’t establish real-world political power directly, it provides a structural lens to observe how certain figures stand out in digital spaces.
+The nodes are not labeled with names, but the results demonstrate that some members show significantly higher connectivity than others, which suggests possible influence. This supports the broader goal of using social media interaction graphs to explore patterns of prominence or engagement among Congress members.
+Although this analysis doesn’t establish real-world political power directly, it provides a framework to observe how certain figures stand out in digital spaces.
 
 Usage Instructions
 How to build and run your code.
@@ -166,8 +166,55 @@ graph_visualization.png — graph layout image
 Include expected runtime especially if your project takes a long time to run.
 For the edgelist, the runtime is under 2 seconds
 As for the larger graphs, the runtime is around 10-15 seconds because of them building the adjacency matrix, plotting with plotters, and randomizing graph layout
+AI Statement
+I didn’t know how to graph a histogram in Rust, so I asked ChatGPT, and here is what it gave me:
 
-(Look at PDF for a more colorful description + screenshots of my code) - It is easier to read than the README.md
+
+let mut bins: std::collections::HashMap<usize, usize> = std::collections::HashMap::new();
+for &(_, centrality) in centrality_scores {
+    let bin = (centrality * 100.0).floor() as usize;
+    *bins.entry(bin).or_insert(0) += 1;
+}
+
+For this code, I group the centrality values into bins by multiplying by 100 and rounding down. This allows me to count how many nodes fall into each 1% range of centrality.
+let mut data: Vec<(usize, usize)> = bins.into_iter().collect();
+data.sort_by_key(|&(bin, _)| bin);
+This one turns the hash map into a sorted vector so that the bars in the histogram appear in order from low to high centrality.
+let max_y = data.iter().map(|&(_, y)| y).max().unwrap_or(1);
+Here, I find the maximum count across all bins to set the height of the histogram axes. If empty, I default to 1 to avoid errors when drawing the chart.
+
+let root = BitMapBackend::new("centrality_histogram.png", (800, 600)).into_drawing_area();
+root.fill(&WHITE)?;
+
+Here, I create a 800x600 image where the histogram will be drawn, and fill the background white.
+
+let mut chart = ChartBuilder::on(&root)
+    .caption("Degree Centrality Distribution", ("sans-serif", 30))
+    .margin(20)
+    .x_label_area_size(40)
+    .y_label_area_size(50)
+    .build_cartesian_2d(0u32..100u32, 0usize..(max_y + 5))?;
+
+Here, I set up the plotting area with labeled axes and margins, and define the x-axis to range from 0 to 100% and the y-axis based on the largest bin count.
+
+
+chart
+    .configure_mesh()
+    .x_desc("Degree Centrality (%)")
+    .y_desc("Number of Nodes")
+    .draw()?;
+I label the axes to show what each direction means. X is the centrality and y is how many nodes fall into each bin
+chart.draw_series(data.iter().map(|&(bin, count)| {
+    let bar_width = 2;
+    let x0 = bin as u32;
+    let x1 = x0 + bar_width;
+
+    Rectangle::new(
+        [(x0, 0), (x1, count)],
+        BLUE.filled(),
+    )
+}))?;
+I draw each bar in the histogram from (bin, 0) up to (bin+width, count). It means that each bar is filled with blue and represents how many nodes fall in that bin.
 
 
 
